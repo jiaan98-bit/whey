@@ -24,6 +24,9 @@ function ProfilePage() {
   } | null>(null);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [changingPassword, setChangingPassword] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [email, setEmail] = useState("");
 
   useEffect(() => {
@@ -65,6 +68,31 @@ function ProfilePage() {
     const g = calculateProteinGoal(Number(profile.weight_kg), profile.activity_level, profile.goal_type);
     set("protein_goal_g", g);
     toast.success(t("suggested_g", { g }));
+  }
+
+  async function changePassword() {
+    if (!newPassword || newPassword.length < 6) {
+      toast.error(t("password_min_length"));
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      toast.error(t("passwords_must_match"));
+      return;
+    }
+
+    setChangingPassword(true);
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    setChangingPassword(false);
+
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+
+    setNewPassword("");
+    setConfirmPassword("");
+    toast.success(t("password_changed"));
   }
 
   async function signOut() {
@@ -159,6 +187,38 @@ function ProfilePage() {
               <option value="cut">{t("goal_cut")}</option><option value="maintain">{t("goal_maintain")}</option><option value="bulk">{t("goal_bulk")}</option>
             </select>
           </Row>
+        </Group>
+
+        <Group title={t("security")}> 
+          <Row label={t("new_password")}>
+            <input
+              type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              className="bg-transparent text-right focus:outline-none"
+              placeholder={t("new_password")}
+              minLength={6}
+            />
+          </Row>
+          <Row label={t("confirm_password")}> 
+            <input
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              className="bg-transparent text-right focus:outline-none"
+              placeholder={t("confirm_password")}
+              minLength={6}
+            />
+          </Row>
+          <div className="px-4 py-3.5">
+            <button
+              onClick={changePassword}
+              disabled={changingPassword}
+              className="w-full rounded-2xl bg-surface text-brand py-3.5 font-semibold transition-colors hover:bg-surface/90 disabled:opacity-50"
+            >
+              {changingPassword ? "…" : t("change_password")}
+            </button>
+          </div>
         </Group>
 
         <button onClick={save} disabled={saving} className="w-full rounded-2xl bg-foreground text-brand py-3.5 font-semibold disabled:opacity-50">
